@@ -1,0 +1,22 @@
+[package]
+name = "density-rs"
+description = "Rust bindings to density compression library"
+version = "0.1.0"
+authors = ["Crypto-Spartan <accounts@cryptospartan.net>", "k0dai <guillaume.voirin@gmail.com>"]
+homepage = "https://github.com/Crypto-Spartan/density-rs"
+repository = "https://github.com/Crypto-Spartan/density-rs"
+readme = "README.md"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cty = "0.2.2"
+
+[build-dependencies]
+cc = "1.0.72"
+bindgen = "0.59.2"
+
+[profile.release]
+lto = "fat"
+codegen-units=1
