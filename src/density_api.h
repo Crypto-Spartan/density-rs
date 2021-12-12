@@ -50,11 +50,7 @@ extern "C" {
 #endif
 
 
-/***********************************************************************************************************************
- *                                                                                                                     *
- * API data structures                                                                                                 *
- *                                                                                                                     *
- ***********************************************************************************************************************/
+/* API data structures */
 
 typedef uint8_t density_byte;
 typedef bool density_bool;
@@ -90,34 +86,19 @@ typedef struct {
 
 
 
-/***********************************************************************************************************************
- *                                                                                                                     *
- * Density version information                                                                                         *
- *                                                                                                                     *
- ***********************************************************************************************************************/
 
-/*
- * Returns the major density version
- */
+/// Density version information                                                                 
+
+/// Returns the major density version
 DENSITY_WINDOWS_EXPORT uint8_t density_version_major(void);
-
-/*
- * Returns the minor density version
- */
+/// Returns the minor density version
 DENSITY_WINDOWS_EXPORT uint8_t density_version_minor(void);
-
-/*
- * Returns the density revision
- */
+/// Returns the density revision
 DENSITY_WINDOWS_EXPORT uint8_t density_version_revision(void);
 
 
 
-/***********************************************************************************************************************
- *                                                                                                                     *
- * Density API functions                                                                                               *
- *                                                                                                                     *
- ***********************************************************************************************************************/
+/* Density API functions */
 
 /*
  * Return the required size of an algorithm's dictionary
