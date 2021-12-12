@@ -4,13 +4,7 @@
 
 use cty;
 
-//include!("bindingsv2.rs");
 include!("bindings.rs");
-
-pub fn test_linkage() {
-    println!("Link to lib.rs working!");
-}
-
 
 #[cfg(test)]
 mod test {
