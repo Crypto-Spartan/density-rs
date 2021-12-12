@@ -117,10 +117,14 @@ DENSITY_WINDOWS_EXPORT density_processing_result density_compress_prepare_contex
 }
 
 DENSITY_WINDOWS_EXPORT density_processing_result density_compress_with_context(const uint8_t * input_buffer, const uint_fast64_t input_size, uint8_t * output_buffer, const uint_fast64_t output_size, density_context *const context) {
-    if (output_size < sizeof(density_header))
+
+    // sizeof(density_header) = 8 bytes
+    if (output_size < sizeof(density_header)) {
         return density_make_result(DENSITY_STATE_ERROR_OUTPUT_BUFFER_TOO_SMALL, 0, 0, context);
-    if(context == NULL)
+    }
+    if(context == NULL) {
         return density_make_result(DENSITY_STATE_ERROR_INVALID_CONTEXT, 0, 0, context);
+    }
 
     // Variables setup
     const uint8_t *in = input_buffer;
