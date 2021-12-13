@@ -11,7 +11,7 @@ pub mod tests;
 pub mod c_bindings;
 
 
-pub fn compress(
+pub fn compress_block(
     input_buffer: &[u8], 
     input_size: u64, 
     output_buffer: &mut [u8], 
@@ -41,7 +41,7 @@ pub fn compress(
 
 
 
-pub fn decompress(
+pub fn decompress_block(
     input_buffer: &[u8], 
     input_size: u64, 
     output_buffer: &mut [u8], 
