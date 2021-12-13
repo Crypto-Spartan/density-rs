@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 #[test]
-fn test_round_trip_compression_decompression() {
+fn test_round_trip_compression_decompression_C() {
     use crate::c_bindings;
     unsafe {
         let text = "This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+".to_owned();
