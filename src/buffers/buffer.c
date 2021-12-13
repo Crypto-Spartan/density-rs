@@ -101,12 +101,10 @@ DENSITY_FORCE_INLINE density_context* density_allocate_context(const DENSITY_ALG
     return context;
 }
 
-DENSITY_WINDOWS_EXPORT void density_free_context(density_context *const context, void (*mem_free)(void *)) {
-    if(mem_free == NULL)
-        mem_free = free;
+DENSITY_WINDOWS_EXPORT void density_free_context(density_context *const context) {
     if(!context->dictionary_type)
-        mem_free(context->dictionary);
-    mem_free(context);
+        free(context->dictionary);
+    free(context);
 }
 
 DENSITY_WINDOWS_EXPORT density_processing_result density_compress_prepare_context(const DENSITY_ALGORITHM algorithm, const bool custom_dictionary, void *(*mem_alloc)(size_t)) {
@@ -200,23 +198,27 @@ DENSITY_WINDOWS_EXPORT density_processing_result density_decompress_with_context
 DENSITY_WINDOWS_EXPORT density_processing_result density_compress(const uint8_t *input_buffer, const uint_fast64_t input_size, uint8_t *output_buffer, const uint_fast64_t output_size, const DENSITY_ALGORITHM algorithm) {
     density_processing_result result = density_compress_prepare_context(algorithm, false, malloc);
     if(result.state) {
-        density_free_context(result.context, free);
+            if(!result.context->dictionary_type) {
+                free(result.context->dictionary);
+            }
+        free(result.context);
+        //density_free_context(result.context);
         return result;
     }
 
     result = density_compress_with_context(input_buffer, input_size, output_buffer, output_size, result.context);
-    density_free_context(result.context, free);
+    density_free_context(result.context);
     return result;
 }
 
 DENSITY_WINDOWS_EXPORT density_processing_result density_decompress(const uint8_t *input_buffer, const uint_fast64_t input_size, uint8_t *output_buffer, const uint_fast64_t output_size) {
     density_processing_result result = density_decompress_prepare_context(input_buffer, input_size, false, malloc);
     if(result.state) {
-        density_free_context(result.context, free);
+        density_free_context(result.context);
         return result;
     }
 
     result = density_decompress_with_context(input_buffer + result.bytesRead, input_size - result.bytesRead, output_buffer, output_size, result.context);
-    density_free_context(result.context, free);
+    density_free_context(result.context);
     return result;
 }

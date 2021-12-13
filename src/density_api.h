@@ -127,7 +127,7 @@ DENSITY_WINDOWS_EXPORT uint_fast64_t density_decompress_safe_size(const uint_fas
  * @param context the context to free
  * @param mem_free the memory freeing function. If set to NULL, free() is used
  */
-DENSITY_WINDOWS_EXPORT void density_free_context(density_context *const context, void (*mem_free)(void *));
+DENSITY_WINDOWS_EXPORT void density_free_context(density_context *const context);
 
 /*
  * Allocate a context in memory using the provided function and optional dictionary
