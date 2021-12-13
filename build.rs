@@ -18,7 +18,7 @@ fn main() {
         .generate()
         .expect("Unable to generate bindings");
 
-    bindings.write_to_file("src/bindings.rs").expect("Couldn't write bindings!");
+    bindings.write_to_file("src/c_bindings.rs").expect("Couldn't write bindings!");
     
     // compile the C portion of Density using the cc crate
     cc::Build::new()
