@@ -169,7 +169,7 @@ DENSITY_WINDOWS_EXPORT density_processing_result density_compress(const uint8_t 
  * @param custom_dictionary use a custom dictionary ? If set to true the context's dictionary will have to be allocated
  * @param mem_alloc the memory allocation function. If set to NULL, malloc() is used
  */
-DENSITY_WINDOWS_EXPORT density_processing_result density_decompress_prepare_context(const uint8_t *input_buffer, const uint_fast64_t input_size, const bool custom_dictionary, void *(*mem_alloc)(size_t));
+DENSITY_WINDOWS_EXPORT density_processing_result density_decompress_prepare_context(const uint8_t *input_buffer, const uint_fast64_t input_size, const bool custom_dictionary);
 
 /*
  * Decompress an input_buffer of input_size bytes and store the result in output_buffer, using the provided dictionary.
