@@ -107,9 +107,7 @@ DENSITY_WINDOWS_EXPORT void density_free_context(density_context *const context)
     free(context);
 }
 
-DENSITY_WINDOWS_EXPORT density_processing_result density_compress_prepare_context(const DENSITY_ALGORITHM algorithm, const bool custom_dictionary, void *(*mem_alloc)(size_t)) {
-    if(mem_alloc == NULL)
-        mem_alloc = malloc;
+DENSITY_WINDOWS_EXPORT density_processing_result density_compress_prepare_context(const DENSITY_ALGORITHM algorithm, const bool custom_dictionary) {
 
     return density_make_result(DENSITY_STATE_OK, 0, 0, density_allocate_context(algorithm, custom_dictionary));
 }
@@ -196,13 +194,9 @@ DENSITY_WINDOWS_EXPORT density_processing_result density_decompress_with_context
 }
 
 DENSITY_WINDOWS_EXPORT density_processing_result density_compress(const uint8_t *input_buffer, const uint_fast64_t input_size, uint8_t *output_buffer, const uint_fast64_t output_size, const DENSITY_ALGORITHM algorithm) {
-    density_processing_result result = density_compress_prepare_context(algorithm, false, malloc);
+    density_processing_result result = density_compress_prepare_context(algorithm, false);
     if(result.state) {
-            if(!result.context->dictionary_type) {
-                free(result.context->dictionary);
-            }
-        free(result.context);
-        //density_free_context(result.context);
+        density_free_context(result.context);
         return result;
     }
 

@@ -136,7 +136,7 @@ DENSITY_WINDOWS_EXPORT void density_free_context(density_context *const context)
  * @param custom_dictionary use an eventual custom dictionary ? If set to true the context's dictionary will have to be allocated
  * @param mem_alloc the memory allocation function. If set to NULL, malloc() is used
  */
-DENSITY_WINDOWS_EXPORT density_processing_result density_compress_prepare_context(const DENSITY_ALGORITHM algorithm, const bool custom_dictionary, void *(*mem_alloc)(size_t));
+DENSITY_WINDOWS_EXPORT density_processing_result density_compress_prepare_context(const DENSITY_ALGORITHM algorithm, const bool custom_dictionary);
 
 /*
  * Compress an input_buffer of input_size bytes and store the result in output_buffer, using the provided context.
