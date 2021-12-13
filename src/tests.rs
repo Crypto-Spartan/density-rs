@@ -1,9 +1,67 @@
+use crate::c_bindings;
+use crate::{compress, decompress};
 
 
-#[cfg(test)]
+#[test]
+fn test_round_trip_compression_decompression() {
+    unsafe {
+        let text = "This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+".to_owned();
+
+        let text_bytes = text.as_bytes();
+        println!("text_bytes = {}", std::str::from_utf8(text_bytes.clone()).unwrap());
+        let text_length = text_bytes.len();
+        println!("text_length = {}", text_length);
+
+        let compress_safe_size = c_bindings::density_compress_safe_size(text_length as _);
+        let decompress_safe_size = c_bindings::density_decompress_safe_size(text_length as _);
+        println!(
+            "compress_safe_size = {}\ndecompress_safe_size = {}",
+            compress_safe_size, decompress_safe_size
+        );
+
+        let mut compressed_output: Vec<u8> = vec![0; compress_safe_size as usize];
+        let mut decompressed_output: Vec<u8> = vec![0; decompress_safe_size as usize];
+
+        let result: c_bindings::density_processing_result = compress(
+            &text_bytes, 
+            text_length as u64, 
+            &mut compressed_output, 
+            compress_safe_size, 
+            c_bindings::DENSITY_ALGORITHM_DENSITY_ALGORITHM_CHAMELEON
+        );
+
+        if result.state == c_bindings::DENSITY_STATE_DENSITY_STATE_OK {
+            println!("Compressed {} bytes to {} bytes", result.bytesRead, result.bytesWritten);
+        } else {
+            //result.state is a u32
+            let error = read_density_error(result.state);
+            panic!("Compression Error: {}", error);
+        }
+
+        let result: c_bindings::density_processing_result = decompress(
+            &compressed_output, 
+            result.bytesWritten, 
+            &mut decompressed_output,
+            decompress_safe_size
+        );
+
+        if result.state == c_bindings::DENSITY_STATE_DENSITY_STATE_OK {
+            println!("Deompressed {} bytes to {} bytes", result.bytesRead, result.bytesWritten);
+            decompressed_output.truncate(result.bytesWritten as _);
+        } else {
+            let error = read_density_error(result.state);
+            panic!("Deompression Error: {}", error);
+        }
+
+        println!("text_bytes = {:?}\ndecompressed_output = {:?}", text_bytes, decompressed_output);
+        assert!(text_bytes == &decompressed_output);
+    }
+}
+
+
+
 #[test]
 fn test_round_trip_compression_decompression_C() {
-    use crate::c_bindings;
     unsafe {
         let text = "This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+".to_owned();
 
@@ -72,7 +130,7 @@ fn test_round_trip_compression_decompression_C() {
             output_buffer: *mut u8,
             output_size: uint_fast64_t,
         ) -> density_processing_result;*/
-    }   
+    } 
 }
 
 #[cfg(test)]
