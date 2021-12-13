@@ -3,6 +3,7 @@ use bindgen;
 fn main() {
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=src/density_api.h");
+    println!("cargo:rerun-if-changed=src/c_bindings.rs");
 
     // create rust bindings for the C portion of Density using bindgen
     let bindings = bindgen::Builder::default()

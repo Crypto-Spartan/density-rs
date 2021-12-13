@@ -89,13 +89,13 @@ DENSITY_FORCE_INLINE density_processing_result density_make_result(const DENSITY
     return result;
 }
 
-DENSITY_FORCE_INLINE density_context* density_allocate_context(const DENSITY_ALGORITHM algorithm, const bool custom_dictionary, void *(*mem_alloc)(size_t)) {
-    density_context* context = mem_alloc(sizeof(density_context));
+DENSITY_FORCE_INLINE density_context* density_allocate_context(const DENSITY_ALGORITHM algorithm, const bool custom_dictionary) {
+    density_context* context = malloc(sizeof(density_context));
     context->algorithm = algorithm;
     context->dictionary_size = density_get_dictionary_size(context->algorithm);
     context->dictionary_type = custom_dictionary;
     if(!context->dictionary_type) {
-        context->dictionary = mem_alloc(context->dictionary_size);
+        context->dictionary = malloc(context->dictionary_size);
         DENSITY_MEMSET(context->dictionary, 0, context->dictionary_size);
     }
     return context;
@@ -113,7 +113,7 @@ DENSITY_WINDOWS_EXPORT density_processing_result density_compress_prepare_contex
     if(mem_alloc == NULL)
         mem_alloc = malloc;
 
-    return density_make_result(DENSITY_STATE_OK, 0, 0, density_allocate_context(algorithm, custom_dictionary, mem_alloc));
+    return density_make_result(DENSITY_STATE_OK, 0, 0, density_allocate_context(algorithm, custom_dictionary));
 }
 
 DENSITY_WINDOWS_EXPORT density_processing_result density_compress_with_context(const uint8_t * input_buffer, const uint_fast64_t input_size, uint8_t * output_buffer, const uint_fast64_t output_size, density_context *const context) {
@@ -159,15 +159,13 @@ DENSITY_WINDOWS_EXPORT density_processing_result density_decompress_prepare_cont
 
     // Variables setup
     const uint8_t* in = input_buffer;
-    if(mem_alloc == NULL)
-        mem_alloc = malloc;
 
     // Read header
     density_header main_header;
     density_header_read(&in, &main_header);
 
     // Setup context
-    density_context *const context = density_allocate_context(main_header.algorithm, custom_dictionary, mem_alloc);
+    density_context *const context = density_allocate_context(main_header.algorithm, custom_dictionary);
     return density_make_result(DENSITY_STATE_OK, in - input_buffer, 0, context);
 }
 
