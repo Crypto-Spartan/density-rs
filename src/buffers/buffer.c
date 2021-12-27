@@ -112,7 +112,7 @@ DENSITY_WINDOWS_EXPORT density_processing_result density_compress_prepare_contex
     return density_make_result(DENSITY_STATE_OK, 0, 0, density_allocate_context(algorithm, custom_dictionary));
 }
 
-DENSITY_WINDOWS_EXPORT density_processing_result density_compress_with_context(const uint8_t * input_buffer, const uint_fast64_t input_size, uint8_t * output_buffer, const uint_fast64_t output_size, density_context *const context) {
+DENSITY_WINDOWS_EXPORT density_processing_result density_compress_with_context(const uint8_t *input_buffer, const uint_fast64_t input_size, uint8_t * output_buffer, const uint_fast64_t output_size, density_context *const context) {
 
     // sizeof(density_header) = 8 bytes
     if (output_size < sizeof(density_header)) {
@@ -190,7 +190,8 @@ DENSITY_WINDOWS_EXPORT density_processing_result density_decompress_with_context
     }
 
     // Result
-    return density_make_result(density_convert_algorithm_exit_status(status), in - input_buffer, out - output_buffer, context);
+    // (+8 on input_buffer since that calculation ignored the header bytes read)
+    return density_make_result(density_convert_algorithm_exit_status(status), in - input_buffer + 8 , out - output_buffer, context);
 }
 
 DENSITY_WINDOWS_EXPORT density_processing_result density_compress(const uint8_t *input_buffer, const uint_fast64_t input_size, uint8_t *output_buffer, const uint_fast64_t output_size, const DENSITY_ALGORITHM algorithm) {

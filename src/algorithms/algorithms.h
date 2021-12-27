@@ -57,14 +57,29 @@ typedef struct {
             *in += work_block_size;\
             *out += work_block_size;
 
+// copy_penalty -= 1
+// if copy_penalty == 0:
+    // copy_penalty_start += 1
 #define DENSITY_ALGORITHM_INCREASE_COPY_PENALTY_START\
             if(!(--state->copy_penalty))\
                 state->copy_penalty_start++;
 
+// if statement: if copy_penalty_start > 1
+// shift right: divide by 2, throw out any remainders
+// if statement not true on first loop
 #define DENSITY_ALGORITHM_REDUCE_COPY_PENALTY_START\
             if (state->copy_penalty_start & ~0x1)\
                 state->copy_penalty_start >>= 1;
 
+// span is (*out - out_start) - (aka data written for specific 256 byte chunk read)
+// work_block_size for chameleon is 256
+// ~(work_block_size - 1) = 0u8 or u16::max - 255
+// if we wrote 256 or more bytes to output_buffer:
+    // if last iteration wrote 256+ bytes to output_buffer:
+        // copy_penalty = copy_penalty_start
+    // set previous_incompressible to true
+// else: (wrote 255 or less bytes to output_buffer)
+    // set previous_incompressible to false
 #define DENSITY_ALGORITHM_TEST_INCOMPRESSIBILITY(span, work_block_size)\
             if (DENSITY_UNLIKELY(span & ~(work_block_size - 1))) {\
                 if (state->previous_incompressible)\
