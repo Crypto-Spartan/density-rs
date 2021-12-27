@@ -1,9 +1,9 @@
 use crate::c_bindings;
-use crate::{compress, decompress};
+use crate::{compress_block, decompress_block};
 
 
 #[test]
-fn test_round_trip_compression_decompression() {
+fn test_round_trip_compression_decompression_v1() {
     unsafe {
         let text = "This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+".to_owned();
 
@@ -22,7 +22,7 @@ fn test_round_trip_compression_decompression() {
         let mut compressed_output: Vec<u8> = vec![0; compress_safe_size as usize];
         let mut decompressed_output: Vec<u8> = vec![0; decompress_safe_size as usize];
 
-        let result: c_bindings::density_processing_result = compress(
+        let result: c_bindings::density_processing_result = compress_block(
             &text_bytes, 
             text_length as u64, 
             &mut compressed_output, 
@@ -38,7 +38,7 @@ fn test_round_trip_compression_decompression() {
             panic!("Compression Error: {}", error);
         }
 
-        let result: c_bindings::density_processing_result = decompress(
+        let result: c_bindings::density_processing_result = decompress_block(
             &compressed_output, 
             result.bytesWritten, 
             &mut decompressed_output,
