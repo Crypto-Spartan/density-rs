@@ -1,5 +1,5 @@
 use bindgen;
-use rustc_version::{version, version_meta, Channel, Version};
+use rustc_version::{version, /*version_meta, Channel,*/ Version};
 
 fn main() {
 
