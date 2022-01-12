@@ -1,4 +1,13 @@
-
+#[macro_export]
+macro_rules! alloc_boxed_array {
+    ($x: expr) => {{
+        let layout = Layout::new::<[u32; $x]>();
+        unsafe {
+            let ptr = alloc_zeroed(layout) as *mut [u32; $x];
+            Box::from_raw(ptr)
+        }
+    }}
+}
 
 #[macro_export]
 macro_rules! max_3 {
