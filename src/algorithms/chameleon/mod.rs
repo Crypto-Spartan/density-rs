@@ -1,6 +1,5 @@
 pub mod encode;
 
-
 pub const CHAMELEON_HASH_BITS: usize = 16;
 pub const CHAMELEON_HASH_MULTIPLIER: u32 = 0x9D6EF916;
 
@@ -24,8 +23,8 @@ pub enum ChameleonSignatureFlag {
     Map = 1
 }
 
-
+#[inline(always)]
 pub fn chameleon_hash_function(value: u32) -> u16 {
     // right shift: (32 - DENSITY_CHAMELEON_HASH_BITS) = 16
-    ((value * CHAMELEON_HASH_MULTIPLIER) >> 16) as u16
+    ((value.wrapping_mul(CHAMELEON_HASH_MULTIPLIER)) >> 16) as u16
 }
