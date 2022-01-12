@@ -4,8 +4,9 @@
 use density_rs::{
     c_bindings,
     compress_block, decompress_block,
-    DensityResult, DensityAlgorithm
+    DensityResult, DensityState, DensityAlgorithm
 };
+use rand::prelude::*;
 
 /*use density_rs::{max_2, max_3};
 //use std::cmp;
@@ -63,16 +64,31 @@ fn test_round_trip_compression_decompression() {
     
     let text = "This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+".to_owned();
 
+    /*const data_len: usize = 262_144;
+    let mut text = vec![0u8; data_len];
+    let mut seeded_rng = StdRng::seed_from_u64(510152025);
+
+    for i in text.iter_mut() {
+        *i = seeded_rng.gen();
+    }*/
+
+    //dbg!(text);
+
+
     let text_bytes = text.as_bytes();
-    println!("text_bytes = {}", std::str::from_utf8(text_bytes.clone()).unwrap());
+    //let text_bytes = &text[..];
+    //println!("text_bytes = {}", std::str::from_utf8(text_bytes.clone()).unwrap());
     let text_length = text_bytes.len();
     println!("text_length = {}", text_length);
 
-    let compress_safe_size;
+    //let compress_safe_size;
     let decompress_safe_size;
 
+    let num_chunks_256 = text_length >> 8;
+    let compress_safe_size = (num_chunks_256+1) * 320;
+
     unsafe {
-        compress_safe_size = c_bindings::density_compress_safe_size(text_length as _);
+        //compress_safe_size = c_bindings::density_compress_safe_size(text_length as _);
         decompress_safe_size = c_bindings::density_decompress_safe_size(text_length as _);
     }
     println!(
@@ -86,21 +102,17 @@ fn test_round_trip_compression_decompression() {
     //let result: c_bindings::density_processing_result = compress_block(
     let result: DensityResult = compress_block(
         &text_bytes, 
-        text_length as u64, 
-        &mut compressed_output, 
-        compress_safe_size,
+        &mut compressed_output,
         DensityAlgorithm::Chameleon
-        //c_bindings::DENSITY_ALGORITHM_DENSITY_ALGORITHM_CHAMELEON
     );
 
-    if result.state as u32 == c_bindings::DENSITY_STATE_DENSITY_STATE_OK {
-        //println!("Compressed {} bytes to {} bytes", result.bytesRead, result.bytesWritten);
+    if matches!(result.state, DensityState::OK) {
         println!("Compressed {} bytes to {} bytes", result.bytes_read, result.bytes_written);
-        compressed_output.truncate(result.bytes_written as _)
+        compressed_output.truncate(result.bytes_written);
     } else {
         //result.state is a u32
-        let error = read_density_error(result.state as u32);
-        panic!("Compression Error: {}", error);
+        //let error = read_density_error(result.state as u32);
+        panic!("Compression Error: {:?}", result.state);
     }
     
     let result: c_bindings::density_processing_result = decompress_block(
@@ -118,7 +130,7 @@ fn test_round_trip_compression_decompression() {
         panic!("Decompression Error: {}", error);
     }
     
-    println!("text_bytes = {:?}\ndecompressed_output = {:?}", text_bytes, decompressed_output);
+    //println!("text_bytes = {:?}\ndecompressed_output = {:?}", text_bytes, decompressed_output);
     assert!(text_bytes == &decompressed_output);
 }
 

@@ -49,8 +49,8 @@ pub struct DensityContext {
 
 pub struct DensityResult {
     pub state: DensityState,
-    pub bytes_read: u64,
-    pub bytes_written: u64
+    pub bytes_read: usize,
+    pub bytes_written: usize
 }
 
 pub enum ResultEnum {
@@ -59,41 +59,8 @@ pub enum ResultEnum {
 }
 
 
-pub fn compress_block(
-    input_buffer: &[u8], 
-    input_size: u64, 
-    output_buffer: &mut [u8], 
-    output_size: u64, 
-    algorithm: DensityAlgorithm//c_bindings::DENSITY_ALGORITHM
-) -> DensityResult {//c_bindings::density_processing_result {
-    
-    /*let result: DensityResult = buffer::compress_prepare_dict(algorithm);
-    if result.state as u8 != DensityState::OK as u8 {
-        return result;
-    }*/
-
-    let result = buffer::compress_with_dict_c(input_buffer, input_size, output_buffer, output_size, algorithm);//, result.dict);
-
-    // need to transition c_bindings::density_compress_with_context before i can remove above unsafe code
-    /*let mut result: c_bindings::density_processing_result;
-    unsafe {
-        result = c_bindings::density_compress_prepare_context(algorithm, false);
-        if result.state != 0u32 {
-            c_bindings::density_free_context(result.context);
-            return result;
-        }
-
-        result = c_bindings::density_compress_with_context(
-            input_buffer.as_ptr() as _, 
-            input_size, 
-            output_buffer.as_mut_ptr() as *mut _, 
-            output_size, 
-            result.context
-        );
-        c_bindings::density_free_context(result.context);
-    }*/
-
-    return result;
+pub fn compress_block(input_buffer: &[u8], output_buffer: &mut [u8], algorithm: DensityAlgorithm) -> DensityResult {
+    buffer::compress_with_dict(input_buffer, output_buffer, algorithm)
 }
 
 

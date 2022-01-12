@@ -1,127 +1,151 @@
-use crate::{
-    algorithms, algorithms::chameleon
+use std::{
+    alloc::{alloc_zeroed, Layout},
+    ptr
 };
 
-pub fn chameleon_encode(state: &mut algorithms::State, in_buf: &[u8], out_buf: &mut [u8]) -> algorithms::ExitStatus {
-    
-    if out_size < chameleon::CHAMELEON_MAX_COMPRESSED_UNIT_SIZE as u64 {
-        return algorithms::ExitStatus::OutputStall;
+use crate::{
+    alloc_boxed_array,
+    algorithms, dictionary,
+    algorithms::chameleon
+};
+
+const not_0x1: usize = usize::MAX - 1;
+
+
+pub fn chameleon_encode(in_buf: &[u8], out_buf: &mut [u8]) -> (algorithms::ExitStatus, usize, usize) {
+
+    // calculate # whole chunks of 256 bytes in input buffer
+    let num_chunks_256 = in_buf.len() >> 8;
+
+    // verify that the output buffer is large enough
+    if out_buf.len() < chameleon::CHAMELEON_MAX_COMPRESSED_UNIT_SIZE || (num_chunks_256+1) * 320 > out_buf.len() {
+        dbg!("DensityState::ErrorOutputBufferTooSmall", num_chunks_256, (num_chunks_256+1) * 320);
+        return (algorithms::ExitStatus::OutputStall, 0, 0);
     }
+    
+    // initialize iterators
+    let in_chunks_256_iter = in_buf.chunks_exact(256);
+    let in_chunks_256_remainder = in_chunks_256_iter.remainder();
 
-    let out_limit = 
+    // initialize variables
+    let mut chameleon_dictionary = alloc_boxed_array!(dictionary::CHAMELEON_DICT_SIZE);
+    let mut copy_penalty: usize = 0;
+    let mut copy_penalty_start: usize = 1;
+    let mut previous_incompressible = false;
 
-    let out_limit = unsafe {
-        (*out_ptr as u64) + out_size - (chameleon::CHAMELEON_MAX_COMPRESSED_UNIT_SIZE as u64)
-    };
-    let limit_256: u64 = (in_size >> 8) - 1;
+    let mut signature: u64 = 0;
+    let mut signature_index: usize = 0;
+    // out index set to 8 since the first 8 bytes contain the header
+    let mut out_index: usize = 8;
 
-    unsafe {
-        while limit_256 > 0 && *out_ptr as u64 <= out_limit {
+    // sequential loop - original DENSITY C library implementation, ported to Rust
+    in_chunks_256_iter.enumerate().for_each(|(counter, chunk_256)| {
 
-            /*if state.counter & 0xf == 0 {
-                algorithms::reduce_copy_penalty_start(&mut state);
-            }*/
-            
-            state.counter += 1;
+        // this is used to decrement copy_penalty_start periodically
+        // `counter & 0xf == 0`: true every 16th iteration (e.g. 0, 16, 32...)
+        if counter & 0xf == 0 && copy_penalty_start > 1 {
+            copy_penalty_start >>= 1; // divide by 2, drop the remainder
+        }
 
-            if state.copy_penalty > 0 {
-                algorithms::algorithm_copy(chameleon::CHAMELEON_WORK_BLOCK_SIZE, &mut in_ptr, &mut out_ptr);
+        // if we have a copy penalty, clone the entire chunk without ananlysis
+        if copy_penalty > 0 {
+            out_buf[out_index..out_index+256].clone_from_slice(chunk_256);
+            out_index += 256;
+
+            copy_penalty -= 1;
+            // after the copy penalty is gone, increment copy_penalty_start
+            // next time we get a copy penalty, it will be higher
+            if copy_penalty == 0 {
+                copy_penalty_start += 1;
             }
-            
-            limit_256 -= 1;
-        }
-    }
-    
 
-    algorithms::ExitStatus::Finished
-}
-
-
-
-
-
-/*density_algorithm_exit_status density_chameleon_encode(density_algorithm_state *const DENSITY_RESTRICT state, const uint8_t **DENSITY_RESTRICT in, const uint_fast64_t in_size, uint8_t **DENSITY_RESTRICT out, const uint_fast64_t out_size) {
-
-    if (out_size < DENSITY_CHAMELEON_MAXIMUM_COMPRESSED_UNIT_SIZE) {
-        return DENSITY_ALGORITHMS_EXIT_STATUS_OUTPUT_STALL;
-    }
-
-    density_chameleon_signature signature;
-    density_chameleon_signature *signature_pointer;
-    uint32_t unit;
-
-    uint8_t *out_limit = *out + out_size - DENSITY_CHAMELEON_MAXIMUM_COMPRESSED_UNIT_SIZE;
-    uint_fast64_t limit_256 = (in_size >> 8);
-
-    while (DENSITY_LIKELY(limit_256-- && *out <= out_limit)) {
-        if (DENSITY_UNLIKELY(!(state->counter & 0xf))) {
-            DENSITY_ALGORITHM_REDUCE_COPY_PENALTY_START;
-        }
-        state->counter++;
-        if (DENSITY_UNLIKELY(state->copy_penalty)) {
-            DENSITY_ALGORITHM_COPY(DENSITY_CHAMELEON_WORK_BLOCK_SIZE);
-            DENSITY_ALGORITHM_INCREASE_COPY_PENALTY_START;
+        // no copy penalty, perform hashing and compression
         } else {
-            const uint8_t *out_start = *out;
-            density_chameleon_encode_prepare_signature(out, &signature_pointer, &signature);
-            DENSITY_PREFETCH(*in + DENSITY_CHAMELEON_WORK_BLOCK_SIZE);
-            density_chameleon_encode_256(in, out, &signature, (density_chameleon_dictionary *const) state->dictionary, &unit);
-#ifdef DENSITY_LITTLE_ENDIAN
-            DENSITY_MEMCPY(signature_pointer, &signature, sizeof(density_chameleon_signature));
-#elif defined(DENSITY_BIG_ENDIAN)
-            const density_chameleon_signature endian_signature = DENSITY_LITTLE_ENDIAN_64(signature);
-            DENSITY_MEMCPY(signature_pointer, &endian_signature, sizeof(density_chameleon_signature));
-#else
-#error
-#endif
-            DENSITY_ALGORITHM_TEST_INCOMPRESSIBILITY((*out - out_start), DENSITY_CHAMELEON_WORK_BLOCK_SIZE);
+            // this is where the actual compression happens
+            signature = 0; // reset signature
+            signature_index = out_index; // get index where signature will go in the output buffer
+            out_index += 8;
+
+            // from our 256 byte chunk, take 4 byte chunks
+            chunk_256.chunks_exact(4).enumerate().for_each(|(shift, chunk_4)| {
+                // turn the 4 byte chunk into a u32 and hash it
+                let chunk_4_as_u32 = u32::from_le_bytes(chunk_4.try_into().unwrap());
+                let hash: u16 = chameleon::chameleon_hash_function(chunk_4_as_u32);
+                // check if we have seen the hash before
+                let found_in_dict: u32 = chameleon_dictionary[hash as usize];
+
+                // if we have seen the hash
+                if chunk_4_as_u32 == found_in_dict {
+                    // turn that bit on in the signature
+                    signature |= (chameleon::ChameleonSignatureFlag::Map as u64) << shift;
+                    // copy the hash to the output buffer
+                    out_buf[out_index..out_index+2].clone_from_slice(&(hash.to_le_bytes()));
+                    out_index += 2;
+
+                // if we have not seen the hash
+                } else {
+                    // set the dictionary value for the hash
+                    chameleon_dictionary[hash as usize] = chunk_4_as_u32;
+                    // copy the raw 4 bytes to the output buffer (no compression on this 4 byte chunk)
+                    out_buf[out_index..out_index+4].clone_from_slice(chunk_4);
+                    out_index += 4;
+                }
+            });
+
+            // write signature to output buffer
+            out_buf[signature_index..signature_index+8].clone_from_slice(&(signature.to_le_bytes()));
+
+            // if signature == 0, we weren't able to compress anything in this chunk
+            if signature == 0 {
+                // we only get a copy penalty if 2 chunks in a row are incompressible
+                if previous_incompressible {
+                    copy_penalty = copy_penalty_start;
+                }
+                previous_incompressible = true;
+            } else {
+                previous_incompressible = false;
+            }
         }
+    });
+
+    //println!("in_chunks_256_remainder.len() = {}", in_chunks_256_remainder.len());
+
+    signature = 0;
+    signature_index = out_index;
+    out_index += 8;
+
+    let in_chunks_256_remainder_chunks_4 = in_chunks_256_remainder.chunks_exact(4);
+    let remaining_bytes = in_chunks_256_remainder_chunks_4.remainder();
+
+    in_chunks_256_remainder_chunks_4.enumerate().for_each(|(shift, chunk_4)| {
+        let chunk_as_u32 = u32::from_le_bytes(chunk_4.try_into().unwrap());
+        let hash: u16 = chameleon::chameleon_hash_function(chunk_as_u32);
+        let found_in_dict: u32 = chameleon_dictionary[hash as usize];
+
+        if chunk_as_u32 == found_in_dict {
+            signature |= (chameleon::ChameleonSignatureFlag::Map as u64) << shift;
+            out_buf[out_index..out_index+2].clone_from_slice(&(hash.to_le_bytes()));
+            out_index += 2;
+        } else {
+            chameleon_dictionary[hash as usize] = chunk_as_u32;
+            out_buf[out_index..out_index+4].clone_from_slice(chunk_4);
+            out_index += 4;
+        }
+    });
+
+    out_buf[signature_index..signature_index+8].clone_from_slice(&(signature.to_le_bytes()));
+
+
+    let len_rem_bytes = remaining_bytes.len();
+    // remaining_bytes.len() guarunteed to be 3 or less
+    // if 0 bytes, nothing to do
+    // if 1-3 bytes, copy them directly to the output buffer
+    if len_rem_bytes > 0 {
+        out_buf[out_index..out_index+len_rem_bytes].clone_from_slice(remaining_bytes);
+        out_index += len_rem_bytes;
     }
 
-    if (*out > out_limit)
-        return DENSITY_ALGORITHMS_EXIT_STATUS_OUTPUT_STALL;
+    //println!("Bytes written: {}", out_index);
 
-    uint_fast64_t remaining;
-
-    switch (in_size & 0xff) {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-            density_chameleon_encode_prepare_signature(out, &signature_pointer, &signature);
-            signature = ((uint64_t) DENSITY_CHAMELEON_SIGNATURE_FLAG_CHUNK);    // End marker
-#ifdef DENSITY_LITTLE_ENDIAN
-            DENSITY_MEMCPY(signature_pointer, &signature, sizeof(density_chameleon_signature));
-#elif defined(DENSITY_BIG_ENDIAN)
-            const density_chameleon_signature endian_signature = DENSITY_LITTLE_ENDIAN_64(signature);
-            DENSITY_MEMCPY(signature_pointer, &endian_signature, sizeof(density_chameleon_signature));
-#else
-#error
-#endif
-            goto process_remaining_bytes;
-        default:
-            break;
-    }
-
-    const uint_fast64_t limit_4 = (in_size & 0xff) >> 2;
-    density_chameleon_encode_prepare_signature(out, &signature_pointer, &signature);
-    for (uint_fast8_t shift = 0; shift != limit_4; shift++)
-        density_chameleon_encode_4(in, out, shift, &signature, (density_chameleon_dictionary *const) state->dictionary, &unit);
-
-    signature |= ((uint64_t) DENSITY_CHAMELEON_SIGNATURE_FLAG_CHUNK << limit_4);    // End marker
-#ifdef DENSITY_LITTLE_ENDIAN
-    DENSITY_MEMCPY(signature_pointer, &signature, sizeof(density_chameleon_signature));
-#elif defined(DENSITY_BIG_ENDIAN)
-    const density_chameleon_signature endian_signature = DENSITY_LITTLE_ENDIAN_64(signature);
-    DENSITY_MEMCPY(signature_pointer, &endian_signature, sizeof(density_chameleon_signature));
-#else
-#error
-#endif
-
-    process_remaining_bytes:
-    remaining = in_size & 0x3;
-    if (remaining)
-        DENSITY_ALGORITHM_COPY(remaining);
-
-    return DENSITY_ALGORITHMS_EXIT_STATUS_FINISHED;
-}*/
+    (algorithms::ExitStatus::Finished, in_buf.len(), out_index)
+}
