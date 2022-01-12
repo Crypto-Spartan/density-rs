@@ -50,21 +50,3 @@ pub fn reduce_copy_penalty_start(state: &mut State) {
         state.copy_penalty_start >>= 1;
     }
 }
-
-pub fn algorithm_copy(work_block_size: usize, in_ptr: &mut *mut *const u8, out_ptr: &mut *mut *mut u8) {
-    in_ptr.f();
-    (*in_ptr).f();
-    (**in_ptr).f();
-    (&(**in_ptr)).f();
-    unsafe {
-        //ptr::copy_nonoverlapping(*in_ptr, *out_ptr, work_block_size);
-        *in_ptr = *in_ptr.offset(work_block_size as isize);
-        *out_ptr = *out_ptr.offset(work_block_size as isize);
-    }
-}
-
-/*
-#define DENSITY_ALGORITHM_COPY(work_block_size)\
-            DENSITY_MEMCPY(*out, *in, work_block_size);\
-            *in += work_block_size;\
-            *out += work_block_size;*/
