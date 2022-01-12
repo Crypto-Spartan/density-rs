@@ -143,6 +143,7 @@ DENSITY_WINDOWS_EXPORT DENSITY_FORCE_INLINE density_algorithm_exit_status densit
             printf("state->copy_penalty_start = %u\n", state->copy_penalty_start);
             printf("state->previous_incompressible = %s\n", state->previous_incompressible ? "true" : "false");
             //DENSITY_ALGORITHM_REDUCE_COPY_PENALTY_START;
+            printf("state->copy_penalty_start & ~0x1 = %u\n", state->copy_penalty_start & ~0x1);
             if (state->copy_penalty_start & ~0x1) {
                 printf("INCOMPRESSIBLE FLAG #4 - reduce copy_penalty_start\n");
                 state->copy_penalty_start >>= 1;
