@@ -1,8 +1,11 @@
 use crate::c_bindings;
-use crate::{compress_block, decompress_block};
+use crate::{
+    DensityResult, DensityState, DensityAlgorithm,
+    compress_block, decompress_block
+};
 
 
-#[test]
+/*#[test]
 fn test_round_trip_compression_decompression_v1() {
     unsafe {
         let text = "This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+".to_owned();
@@ -56,7 +59,76 @@ fn test_round_trip_compression_decompression_v1() {
         println!("text_bytes = {:?}\ndecompressed_output = {:?}", text_bytes, decompressed_output);
         assert!(text_bytes == &decompressed_output);
     }
+}*/
+
+
+
+#[test]
+fn test_rust_compression_equals_C_compression() {
+
+    let mut compressed_output_c: Vec<u8>;
+    let mut compressed_output_rust: Vec<u8>;
+
+    let text = "This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ This is a simple example on how to use the simple Density API. (Here's some data to make this string longer) qwertyuiop[]asdfghjkl;:zxcvbnm,<.>/?`~1!2@3#4$5%6^7&8*9(0)-_=+ ".to_owned();
+
+    // c compression
+    unsafe {
+        let text_bytes = text.as_bytes();
+        let text_length = text_bytes.len();
+        let compress_safe_size = c_bindings::density_compress_safe_size(text_length as _);
+
+        compressed_output_c = vec![0; compress_safe_size as usize];
+
+        let result: c_bindings::density_processing_result = c_bindings::density_compress(
+            text_bytes.as_ptr() as _,
+            text_length as _,
+            compressed_output_c.as_mut_ptr() as *mut _,
+            compress_safe_size as _,
+            c_bindings::DENSITY_ALGORITHM_DENSITY_ALGORITHM_CHAMELEON
+        );
+
+        if result.state == c_bindings::DENSITY_STATE_DENSITY_STATE_OK {
+            println!("C: Compressed {} bytes to {} bytes", result.bytesRead, result.bytesWritten);
+            compressed_output_c.truncate(result.bytesWritten as _);
+        } else {
+            //result.state is a u32
+            let error = read_density_error(result.state);
+            panic!("C: Compression Error: {}", error);
+        }
+    }
+
+
+    // rust compression
+    {
+        let text_bytes = text.as_bytes();
+        let text_length = text_bytes.len();
+        let num_chunks_256 = text_length >> 8;
+        let compress_safe_size = (num_chunks_256+1) * 320;
+
+        compressed_output_rust = vec![0u8; compress_safe_size as usize];
+
+        let result: DensityResult = compress_block(
+            &text_bytes,
+            &mut compressed_output_rust,
+            DensityAlgorithm::Chameleon
+        );
+
+        if matches!(result.state, DensityState::OK) {
+            println!("Rust: Compressed {} bytes to {} bytes", result.bytes_read, result.bytes_written);
+            compressed_output_rust.truncate(result.bytes_written);
+        } else {
+            //result.state is a u32
+            //let error = read_density_error(result.state as u32);
+            panic!("Rust: Compression Error: {:?}", result.state);
+        }
+    }
+
+    println!("C bytes:\n{:?}", compressed_output_c);
+    println!("Rust bytes:\n{:?}", compressed_output_rust);
+
+    assert!(&compressed_output_c == &compressed_output_rust);
 }
+
 
 
 
