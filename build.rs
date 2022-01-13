@@ -26,6 +26,7 @@ fn main() {
 
     // create rust bindings for the C portion of Density using bindgen
     let bindings = bindgen::Builder::default()
+        .raw_line("#![allow(deref_nullptr)]")
         .header("src/density_api.h")
         .header("src/algorithms/algorithms.h")
         .header("src/algorithms/chameleon/core/chameleon_encode.h")
