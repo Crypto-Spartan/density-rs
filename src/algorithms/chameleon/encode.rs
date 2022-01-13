@@ -121,7 +121,7 @@ pub fn chameleon_encode(in_buf: &[u8], out_buf: &mut [u8]) -> (algorithms::ExitS
         let found_in_dict: u32 = chameleon_dictionary[hash as usize];
 
         if chunk_as_u32 == found_in_dict {
-            signature |= (chameleon::ChameleonSignatureFlag::Map as u64) << shift;
+            signature |= 1u64 << shift;
             out_buf[out_index..out_index+2].clone_from_slice(&(hash.to_le_bytes()));
             out_index += 2;
         } else {
