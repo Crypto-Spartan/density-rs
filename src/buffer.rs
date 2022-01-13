@@ -1,7 +1,7 @@
+#![allow(unused_imports)]
+
 use std::{
-    //mem,
     alloc::{alloc_zeroed, Layout},
-    ptr
 };
 use crate::{
     alloc_boxed_array,
@@ -16,7 +16,7 @@ pub fn compress_with_dict(input_buffer: &[u8], output_buffer: &mut [u8], algorit
     
     // sizeof(density_header) = 8 bytes
     if output_buffer.len() < header::sizeof_DensityHeader {
-        dbg!("DensityState::ErrorOutputBufferTooSmall");
+        //dbg!("DensityState::ErrorOutputBufferTooSmall");
         return make_result(DensityState::ErrorOutputBufferTooSmall, 0, 0);
     }
 
@@ -33,7 +33,7 @@ pub fn compress_with_dict(input_buffer: &[u8], output_buffer: &mut [u8], algorit
             let status = algorithms::chameleon::encode::chameleon_encode(
                 //&mut state,
                 input_buffer,
-                output_buffer
+                out_data
             );
 
             /*// just so we have a fake return while coding
@@ -52,7 +52,8 @@ pub fn compress_with_dict(input_buffer: &[u8], output_buffer: &mut [u8], algorit
             }
         },
         _ => {
-            todo!();
+            //todo!();
+            make_result(DensityState::ErrorInvalidAlgorithm, 0, 0)
         }
     }
 }

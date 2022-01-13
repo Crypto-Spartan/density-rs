@@ -1,5 +1,4 @@
 use crate::c_bindings;
-use std::ptr;
 
 pub mod chameleon;
 
