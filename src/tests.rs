@@ -1,7 +1,7 @@
 use crate::c_bindings;
 use crate::{
     DensityResult, DensityState, DensityAlgorithm,
-    compress_block, decompress_block
+    compress_block//, decompress_block
 };
 
 
@@ -77,7 +77,7 @@ fn test_rust_compression_equals_C_compression() {
         let text_length = text_bytes.len();
         let compress_safe_size = c_bindings::density_compress_safe_size(text_length as _);
 
-        compressed_output_c = vec![0; compress_safe_size as usize];
+        compressed_output_c = vec![0u8; compress_safe_size as usize];
 
         let result: c_bindings::density_processing_result = c_bindings::density_compress(
             text_bytes.as_ptr() as _,
@@ -103,7 +103,7 @@ fn test_rust_compression_equals_C_compression() {
         let text_bytes = text.as_bytes();
         let text_length = text_bytes.len();
         let num_chunks_256 = text_length >> 8;
-        let compress_safe_size = (num_chunks_256+1) * 320;
+        let compress_safe_size = ((num_chunks_256+1) * 320) + 8;
 
         compressed_output_rust = vec![0u8; compress_safe_size as usize];
 

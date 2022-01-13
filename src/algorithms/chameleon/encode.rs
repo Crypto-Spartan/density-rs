@@ -1,6 +1,5 @@
 use std::{
     alloc::{alloc_zeroed, Layout},
-    ptr
 };
 
 use crate::{
@@ -17,7 +16,8 @@ pub fn chameleon_encode(in_buf: &[u8], out_buf: &mut [u8]) -> (algorithms::ExitS
 
     // verify that the output buffer is large enough
     if out_buf.len() < chameleon::CHAMELEON_MAX_COMPRESSED_UNIT_SIZE || (num_chunks_256+1) * 320 > out_buf.len() {
-        dbg!("DensityState::ErrorOutputBufferTooSmall", num_chunks_256, (num_chunks_256+1) * 320);
+        //dbg!("DensityState::ErrorOutputBufferTooSmall", num_chunks_256, (num_chunks_256+1) * 320);
+        //dbg!(out_buf.len(), chameleon::CHAMELEON_MAX_COMPRESSED_UNIT_SIZE);
         return (algorithms::ExitStatus::OutputStall, 0, 0);
     }
     
@@ -33,8 +33,7 @@ pub fn chameleon_encode(in_buf: &[u8], out_buf: &mut [u8]) -> (algorithms::ExitS
 
     let mut signature: u64 = 0;
     let mut signature_index: usize = 0;
-    // out index set to 8 since the first 8 bytes contain the header
-    let mut out_index: usize = 8;
+    let mut out_index: usize = 0;
 
     // sequential loop - original DENSITY C library implementation, ported to Rust
     in_chunks_256_iter.enumerate().for_each(|(counter, chunk_256)| {

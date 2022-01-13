@@ -1,5 +1,4 @@
-//use density_rs::*;
-
+#![allow(unused_imports)]
 
 use density_rs::{
     c_bindings,
@@ -85,7 +84,7 @@ fn test_round_trip_compression_decompression() {
     let decompress_safe_size;
 
     let num_chunks_256 = text_length >> 8;
-    let compress_safe_size = (num_chunks_256+1) * 320;
+    let compress_safe_size = ((num_chunks_256+1) * 320) + 8;
 
     unsafe {
         //compress_safe_size = c_bindings::density_compress_safe_size(text_length as _);
