@@ -9,8 +9,6 @@ use crate::{
     algorithms::chameleon
 };
 
-const not_0x1: usize = usize::MAX - 1;
-
 
 pub fn chameleon_encode(in_buf: &[u8], out_buf: &mut [u8]) -> (algorithms::ExitStatus, usize, usize) {
 
@@ -77,7 +75,7 @@ pub fn chameleon_encode(in_buf: &[u8], out_buf: &mut [u8]) -> (algorithms::ExitS
                 // if we have seen the hash
                 if chunk_4_as_u32 == found_in_dict {
                     // turn that bit on in the signature
-                    signature |= (chameleon::ChameleonSignatureFlag::Map as u64) << shift;
+                    signature |= 1u64 << shift;
                     // copy the hash to the output buffer
                     out_buf[out_index..out_index+2].clone_from_slice(&(hash.to_le_bytes()));
                     out_index += 2;
